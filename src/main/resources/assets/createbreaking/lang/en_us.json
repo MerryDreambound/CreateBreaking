@@ -1,0 +1,13 @@
+{
+  "itemGroup.createbreaking": "Example Mod Tab",
+  "block.createbreaking.example_block": "Example Block",
+  "item.createbreaking.example_item": "Example Item",
+
+  "createbreaking.configuration.title": "Create: Breaking Configs",
+  "createbreaking.configuration.section.createbreaking.common.toml": "Create: Breaking Configs",
+  "createbreaking.configuration.section.createbreaking.common.toml.title": "Create: Breaking Configs",
+  "createbreaking.configuration.items": "Item List",
+  "createbreaking.configuration.logDirtBlock": "Log Dirt Block",
+  "createbreaking.configuration.magicNumberIntroduction": "Magic Number Text",
+  "createbreaking.configuration.magicNumber": "Magic Number"
+}
