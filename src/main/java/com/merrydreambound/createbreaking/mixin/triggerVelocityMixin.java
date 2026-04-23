@@ -2,25 +2,19 @@ package com.merrydreambound.createbreaking.mixin;
 
 import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.mixinterface.block_properties.BlockStateExtension;
-import dev.ryanhcode.sable.physics.config.block_properties.BlockStateConditionSet;
 import dev.ryanhcode.sable.physics.config.block_properties.PhysicsBlockPropertiesDefinition;
-import dev.ryanhcode.sable.physics.config.block_properties.PhysicsBlockPropertiesDefinitionLoader;
 import dev.ryanhcode.sable.physics.config.block_properties.PhysicsBlockPropertyTypes;
 import dev.ryanhcode.sable.sublevel.system.SubLevelPhysicsSystem;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import dev.ryanhcode.sable.physics.callback.FragileBlockCallback;
-
-import java.util.Map;
-import java.util.Optional;
 
 @Mixin(FragileBlockCallback.class)
 public class triggerVelocityMixin {
@@ -52,5 +46,11 @@ public class triggerVelocityMixin {
         double velocity = 4 * mass;
 //        LogUtils.getLogger().info(String.valueOf(velocity));
         return velocity;
+    }
+
+    @ModifyArg(method = "onHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;destroyBlock(Lnet/minecraft/core/BlockPos;Z)Z"), index = 1)
+    private boolean removeBlockDrops(boolean par2) {
+        LogUtils.getLogger().info(String.valueOf("False CreateBreaking"));
+        return false;
     }
 }

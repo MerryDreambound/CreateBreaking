@@ -30,6 +30,13 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven { url = "https://maven.blamejared.com"}
+    maven {
+        name = "FzzyMaven"
+        url = "https://maven.fzzyhmstrs.me/"
+    }
+    maven {
+        url = "https://thedarkcolour.github.io/KotlinForForge/"
+    }
 
     maven {url = "https://maven.ryanhcode.dev/releases/"}
 
@@ -141,6 +148,7 @@ dependencies {
     localRuntime("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     localRuntime("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}") { transitive = false }
     localRuntime("com.tterrag.registrate:Registrate:${registrate_version}")
+    implementation("me.fzzyhmstrs:fzzy_config:${fzzyConfigVersion}")
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
     // The group id is ignored when searching -- in this case, it is "blank"
