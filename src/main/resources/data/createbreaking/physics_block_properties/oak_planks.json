@@ -1,8 +1,0 @@
-{
-  "selector": "minecraft:oak_planks",
-
-  "properties": {
-    "sable:fragile": false
-  }
-
-}
