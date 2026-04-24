@@ -26,8 +26,12 @@ public class CreateBreakingConfig extends Config {
 //    @RequiresAction(action = Action.RESTART)
     public ValidatedDouble Super_Heavy_TriggerSpeed = new ValidatedDouble(4, 256, 0.125, ValidatedNumber.WidgetType.TEXTBOX); //this field has defined validation, error correction, and will restrict user inputs to doubles between 0 and 10.
 
-    @Override
-    public SaveType saveType() {
-        return SaveType.SEPARATE;
-    }
+    public ValidatedDouble ForceCallback = new ValidatedDouble(4, 256, 0.125, ValidatedNumber.WidgetType.TEXTBOX); //this field has defined validation, error correction, and will restrict user inputs to doubles between 0 and 10.
+
+
+//
+//    @Override
+//    public SaveType saveType() {
+//        return SaveType.SEPARATE;
+//    }
 }

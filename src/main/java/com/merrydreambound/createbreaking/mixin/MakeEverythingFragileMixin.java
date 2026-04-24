@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(PhysicsBlockPropertyTypes.class)
-public class makeEverythingFragileMixin {
+public class MakeEverythingFragileMixin {
     @Shadow
     private static <T> RegistryObject<PhysicsBlockPropertyTypes.PhysicsBlockPropertyType<T>> register(ResourceLocation id, Codec<T> codec, T defaultValue) {
         throw new AssertionError();
