@@ -1,5 +1,6 @@
 package com.merrydreambound.createbreaking.mixin;
 
+import com.merrydreambound.createbreaking.CreateBreaking;
 import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.mixinterface.block_properties.BlockStateExtension;
 import dev.ryanhcode.sable.physics.config.block_properties.PhysicsBlockPropertiesDefinition;
@@ -31,26 +32,26 @@ public class triggerVelocityMixin {
         double mass = ((BlockStateExtension) state).sable$getProperty(PhysicsBlockPropertyTypes.MASS.get());
 
 
-
         if (mass == 0) {
-            mass = 0.125;
+            mass = CreateBreaking.CONFIG.Weightless_TriggerSpeed.get();
         } else if (mass == 0.25) {
-            mass = 0.25*4;
+            mass = CreateBreaking.CONFIG.Super_Light_TriggerSpeed.get() * 4;
         } else if (mass == 0.5) {
-            mass = 0.5*4;
+            mass = CreateBreaking.CONFIG.Light_TriggerSpeed.get() * 4;
         } else if (mass == 1) {
-            mass = 1*4;
+            mass = CreateBreaking.CONFIG.Default_TriggerSpeed.get() * 4;
+        } else if (mass == 2) {
+            mass = CreateBreaking.CONFIG.Heavy_TriggerSpeed.get() * 4;
         } else if (mass == 4) {
-            mass = 4*4;
+            mass = CreateBreaking.CONFIG.Super_Heavy_TriggerSpeed.get() * 4;
         }
-        double velocity = 4 * mass;
-//        LogUtils.getLogger().info(String.valueOf(velocity));
-        return velocity;
+        double triggerVelocityMixin = 4 * mass;
+//        LogUtils.getLogger().info("Config super heavy:" + String.valueOf(CreateBreaking.CONFIG.Super_Heavy_TriggerSpeed.get()));
+        return triggerVelocityMixin;
     }
 
     @ModifyArg(method = "onHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;destroyBlock(Lnet/minecraft/core/BlockPos;Z)Z"), index = 1)
     private boolean removeBlockDrops(boolean par2) {
-        LogUtils.getLogger().info(String.valueOf("False CreateBreaking"));
         return false;
     }
 }
