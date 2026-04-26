@@ -49,7 +49,6 @@ public class TriggerVelocityMixin {
             mass = CreateBreaking.CONFIG.Super_Heavy_TriggerSpeed.get();
         }
         double triggerVelocityMixin = 4 * mass;
-        LogUtils.getLogger().info("Config super heavy:" + state);
         return triggerVelocityMixin;
     }
 
