@@ -1,75 +1,110 @@
 package com.merrydreambound.createbreaking.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import com.merrydreambound.createbreaking.CreateBreaking;
 import com.mojang.logging.LogUtils;
+import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.api.physics.callback.BlockSubLevelCollisionCallback;
+import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
+import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
+import dev.ryanhcode.sable.companion.math.BoundingBox3d;
+import dev.ryanhcode.sable.companion.math.BoundingBox3dc;
+import dev.ryanhcode.sable.companion.math.JOMLConversion;
+import dev.ryanhcode.sable.companion.math.Pose3d;
 import dev.ryanhcode.sable.mixinterface.block_properties.BlockStateExtension;
-import dev.ryanhcode.sable.physics.config.block_properties.PhysicsBlockPropertiesDefinition;
 import dev.ryanhcode.sable.physics.config.block_properties.PhysicsBlockPropertyTypes;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import dev.ryanhcode.sable.sublevel.system.SubLevelPhysicsSystem;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jline.utils.Log;
 import org.joml.Vector3d;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import dev.ryanhcode.sable.physics.callback.FragileBlockCallback;
+
+import javax.annotation.Nullable;
 
 @Mixin(FragileBlockCallback.class)
 public class TriggerVelocityMixin {
-    @ModifyExpressionValue(method = "sable$onCollision", at = @At(value = "INVOKE", target = "Ldev/ryanhcode/sable/physics/callback/FragileBlockCallback;getTriggerVelocity()D"))
-    private double getTriggerVelocityMassBased(double triggerVelocity, BlockPos pos) {
 
-        final SubLevelPhysicsSystem system = SubLevelPhysicsSystem.getCurrentlySteppingSystem();
-        final ServerLevel level = system.getLevel();
-        final BlockState state = level.getBlockState(pos);
+    @Shadow
+    @Final
+    public static FragileBlockCallback INSTANCE;
 
-        double mass = ((BlockStateExtension) state).sable$getProperty(PhysicsBlockPropertyTypes.MASS.get());
-
-
-        if (mass == 0) {
-            mass = CreateBreaking.CONFIG.Weightless_TriggerSpeed.get();
-        } else if (mass == 0.25) {
-            mass = CreateBreaking.CONFIG.Super_Light_TriggerSpeed.get();
-        } else if (mass == 0.5) {
-            mass = CreateBreaking.CONFIG.Light_TriggerSpeed.get();
-        } else if (mass == 1) {
-            mass = CreateBreaking.CONFIG.Default_TriggerSpeed.get();
-        } else if (mass == 2) {
-            mass = CreateBreaking.CONFIG.Heavy_TriggerSpeed.get();
-        } else if (mass == 4) {
-            mass = CreateBreaking.CONFIG.Super_Heavy_TriggerSpeed.get();
+    private static @Nullable ServerSubLevel getServerSubLevel(final Level level, final BlockPos pos) {
+        final SubLevel subLevel = Sable.HELPER.getContaining(level, pos);
+        if (subLevel instanceof ServerSubLevel serverSubLevel) {
+            return serverSubLevel;
         }
-        double triggerVelocityMixin = 4 * mass;
-        LogUtils.getLogger().info("Config super heavy:" + state);
-        return triggerVelocityMixin;
+        return null;
     }
 
-    @ModifyArg(method = "onHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;destroyBlock(Lnet/minecraft/core/BlockPos;Z)Z"), index = 1)
-    private boolean removeBlockDrops(boolean par2) {
+    @WrapWithCondition(method = "onHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;destroyBlock(Lnet/minecraft/core/BlockPos;Z)Z"))
+    private boolean disableBreaking(ServerLevel instance, BlockPos pos, boolean b) {
         return false;
     }
 
-//    @ModifyReturnValue(method = "Ldev/ryanhcode/sable/physics/callback/FragileBlockCallback;onHit(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lorg/joml/Vector3d;)Ldev/ryanhcode/sable/api/physics/callback/BlockSubLevelCollisionCallback$CollisionResult;", at = @At(value = "RETURN"))
-//    private BlockSubLevelCollisionCallback.CollisionResult addFeedbackForce(BlockSubLevelCollisionCallback.CollisionResult original,final ServerLevel level, final BlockPos pos, final BlockState state, final Vector3d hitPos,@Local double impactVelocity){
-//        Vector3d normal = new Vector3d(hitPos).sub(pos.getX(), pos.getY(), pos.getZ());
-//        // Bounciness? Opposite force? I have no idea lmao
-//        double impulseMagnitude = impactVelocity * 0.05;
-//        Vector3d fedbackForce = normal.mul(impulseMagnitude);
-//        return new BlockSubLevelCollisionCallback.CollisionResult(fedbackForce, original.removeCollision());
-//    }
-//    @WrapOperation(method = "sable$onCollision", at = @At(value = "INVOKE", target = "Ldev/ryanhcode/sable/physics/callback/FragileBlockCallback;onHit(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lorg/joml/Vector3d;)Ldev/ryanhcode/sable/api/physics/callback/BlockSubLevelCollisionCallback$CollisionResult;"))
-//    private BlockSubLevelCollisionCallback.CollisionResult wrapOnCollision(FragileBlockCallback instance, ServerLevel level, BlockPos pos, BlockState state, Vector3d hitPos, Operation<BlockSubLevelCollisionCallback.CollisionResult> original, @Local(argsOnly = true) double impactVelocity){
-//        BlockSubLevelCollisionCallback.CollisionResult result = original.call(instance, level, pos, state, hitPos);
-//
-//        return new BlockSubLevelCollisionCallback.CollisionResult(newSpeed, result.removeCollision());
-//    }
+    @WrapOperation(method = "sable$onCollision", at = @At(value = "INVOKE", target = "Ldev/ryanhcode/sable/physics/callback/FragileBlockCallback;onHit(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lorg/joml/Vector3d;)Ldev/ryanhcode/sable/api/physics/callback/BlockSubLevelCollisionCallback$CollisionResult;"))
+    private BlockSubLevelCollisionCallback.CollisionResult wrapOnCollision(FragileBlockCallback instance, ServerLevel level, BlockPos pos, BlockState state, Vector3d hitPos, Operation<BlockSubLevelCollisionCallback.CollisionResult> original, @Local(argsOnly = true) double impactVelocity) {
+
+        final SubLevelPhysicsSystem system = SubLevelPhysicsSystem.getCurrentlySteppingSystem();
+        final ServerSubLevelContainer container = ServerSubLevelContainer.getContainer(level);
+//        double mass = PhysicsBlockPropertyHelper.getMass(level, pos, state);
+        if (container == null){
+            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+        }
+        ServerSubLevel sublevel = getServerSubLevel(level, pos);
+        if (sublevel == null){
+            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+        }
+        if (sublevel instanceof ServerSubLevel) {
+            double mass = sublevel.getMassTracker().getMass();
+            double bounciness = ((BlockStateExtension) state).sable$getProperty(PhysicsBlockPropertyTypes.RESTITUTION.get());
+
+            RigidBodyHandle handle = system.getPhysicsHandle(sublevel);
+            Vector3d currentVelocity = handle.getLinearVelocity(new Vector3d());
+            double currentSpeed = impactVelocity;
+            BlockPos hitBlockPos = new BlockPos((int) (sublevel.logicalPose().position().x() - 0.5 + Math.clamp(currentVelocity.x(), -1.51, 1.51)),
+                    (int) (sublevel.logicalPose().position().y() + Math.clamp(currentVelocity.y(), -1.51, 1.51)),
+                    (int) (sublevel.logicalPose().position().z() + Math.clamp(currentVelocity.z(), -1.51, 1.51)));
+            BlockState hitBlockState = level.getBlockState(hitBlockPos);
+
+
+            double hitBlockMass = ((BlockStateExtension) hitBlockState).sable$getProperty(PhysicsBlockPropertyTypes.MASS.get());
+            double speedCost = hitBlockMass * hitBlockMass * (1.0 - bounciness);
+            double newSpeed = Math.max(0.0, currentSpeed - speedCost);
+            double velocityRatioLoss;
+
+            if (currentSpeed != 0){
+                velocityRatioLoss = newSpeed / currentSpeed;
+            }else{
+                velocityRatioLoss = 1;
+            }
+            Vector3d velocityLoss = currentVelocity.mul(-(1.0 - velocityRatioLoss), new Vector3d());
+            handle.addLinearAndAngularVelocity(velocityLoss, JOMLConversion.ZERO);
+
+            //Calculate penetration
+            double kineticEnergy = 0.5 * currentSpeed * currentSpeed * mass;
+            double penetrationDepthCost = hitBlockMass * hitBlockMass;
+            if (penetrationDepthCost == 0) {
+                penetrationDepthCost = 0.125;
+            }
+            double penetrationDepth = kineticEnergy / penetrationDepthCost;
+            if (penetrationDepth >= 1.0) {
+                level.destroyBlock(hitBlockPos, true);
+            }
+            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+        }
+        return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+    }
 }
