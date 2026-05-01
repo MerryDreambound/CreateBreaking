@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.merrydreambound.createbreaking.CreateBreaking;
+import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.api.physics.callback.BlockSubLevelCollisionCallback;
 import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
@@ -21,6 +22,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3d;
+import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -35,7 +37,7 @@ public class TriggerVelocityMixin {
     @Unique
     private BlockPos[] hitPositionsToCheck = new BlockPos[1];
 
-    private static @Nullable ServerSubLevel getServerSubLevel(final Level level, final BlockPos pos) {
+    private static @Nullable ServerSubLevel getServerSubLevel(final Level level, final Vector3dc pos) {
         final SubLevel subLevel = Sable.HELPER.getContaining(level, pos);
         if (subLevel instanceof ServerSubLevel serverSubLevel) {
             return serverSubLevel;
@@ -57,12 +59,12 @@ public class TriggerVelocityMixin {
         if (container == null){
             return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
         }
-        ServerSubLevel sublevel = getServerSubLevel(level, pos);
-        if (sublevel == null){
+        ServerSubLevel serverSubLevel = getServerSubLevel(level, hitPos);
+        if (serverSubLevel == null){
             hitPositionsToCheck[0] = pos;
             return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
         }else {
-            if (sublevel instanceof ServerSubLevel) {
+            if (serverSubLevel instanceof ServerSubLevel) {
 
                 // Avoid making 1 block falls dig through the whole world
                 double minVelocity = Math.sqrt(DimensionPhysicsData.getGravity(level).length() * 2);
@@ -70,28 +72,23 @@ public class TriggerVelocityMixin {
                     return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
                 }
 
-                double mass = sublevel.getMassTracker().getMass();
+                double mass = serverSubLevel.getMassTracker().getMass();
                 double bounciness = ((BlockStateExtension) state).sable$getProperty(PhysicsBlockPropertyTypes.RESTITUTION.get());
-
-                RigidBodyHandle handle = system.getPhysicsHandle(sublevel);
+                RigidBodyHandle handle = system.getPhysicsHandle(serverSubLevel);
+                if (handle == null){
+                    LogUtils.getLogger().info("HANDLER IS NULL");
+                    return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+                }
                 Vector3d currentVelocity = handle.getLinearVelocity(new Vector3d());
                 BlockPos hitBlockPos = hitPositionsToCheck[0];
                 BlockState hitBlockState = level.getBlockState(hitBlockPos);
                 double kineticEnergy = 0.5 * impactVelocity * impactVelocity * mass;
                 double hitBlockMass = ((BlockStateExtension) hitBlockState).sable$getProperty(PhysicsBlockPropertyTypes.MASS.get());
-
                 double speedCost = hitBlockMass * (1.0-bounciness) * CreateBreaking.CONFIG.SpeedCost.get();
                 double newEnergy = Math.max(0.0, kineticEnergy - speedCost);
                 double newSpeed = Math.sqrt(2.0 * newEnergy / mass);
-
-                // Prepare for angle based force
-                //Vector3d direction = new Vector3d(currentVelocity).normalize();
-                double ratio = newSpeed / currentVelocity.length();
-
-                Vector3d deltaVelocity = new Vector3d(currentVelocity).mul(ratio - 1.0);
-
-
-                handle.addLinearAndAngularVelocity(deltaVelocity, JOMLConversion.ZERO);
+                double massNewton = mass * (impactVelocity - newSpeed);
+                Vector3d deltaVelocity = new Vector3d(currentVelocity.normalize()).mul(-massNewton);
 
                 //Calculate penetration
                 double penetrationDepthCost = hitBlockMass * CreateBreaking.CONFIG.PenetrationCost.get();
@@ -100,7 +97,8 @@ public class TriggerVelocityMixin {
                 }
                 double penetrationDepth = newEnergy / penetrationDepthCost;
                 if (penetrationDepth >= 1.0) {
-                    level.destroyBlock(hitBlockPos, true);
+                    level.destroyBlock(hitBlockPos, false);
+                    handle.applyLinearAndAngularImpulse(deltaVelocity, JOMLConversion.ZERO,true);
                 }
             }
         }
