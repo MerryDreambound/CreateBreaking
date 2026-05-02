@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "MakeEverythingFragileMixin",
+    "ResetBlockBreakingProgressMixin.ResetMixin",
     "TriggerVelocityMixin"
   ],
   "injectors": {

@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
+import com.merrydreambound.createbreaking.BlockBreakingProgress;
 import com.merrydreambound.createbreaking.CreateBreaking;
 import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.Sable;
@@ -33,7 +34,6 @@ import javax.annotation.Nullable;
 @Mixin(FragileBlockCallback.class)
 public class TriggerVelocityMixin {
 
-
     @Unique
     private BlockPos[] hitPositionsToCheck = new BlockPos[1];
 
@@ -57,27 +57,28 @@ public class TriggerVelocityMixin {
         final ServerSubLevelContainer container = ServerSubLevelContainer.getContainer(level);
 //        double mass = PhysicsBlockPropertyHelper.getMass(level, pos, state);
         if (container == null){
-            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, true);
         }
         ServerSubLevel serverSubLevel = getServerSubLevel(level, hitPos);
         if (serverSubLevel == null){
             hitPositionsToCheck[0] = pos;
-            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, true);
+
         }else {
             if (serverSubLevel instanceof ServerSubLevel) {
+                double mass = serverSubLevel.getMassTracker().getMass();
 
                 // Avoid making 1 block falls dig through the whole world
-                double minVelocity = Math.sqrt(DimensionPhysicsData.getGravity(level).length() * 2);
-                if (impactVelocity < minVelocity) {
-                    return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
-                }
+                double minVelocity = Math.sqrt(DimensionPhysicsData.getGravity(level).length() * 2) * mass;
+//                if (impactVelocity < minVelocity) {
+//                    return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+//                }
 
-                double mass = serverSubLevel.getMassTracker().getMass();
                 double bounciness = ((BlockStateExtension) state).sable$getProperty(PhysicsBlockPropertyTypes.RESTITUTION.get());
                 RigidBodyHandle handle = system.getPhysicsHandle(serverSubLevel);
                 if (handle == null){
                     LogUtils.getLogger().info("HANDLER IS NULL");
-                    return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+                    return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, true);
                 }
                 Vector3d currentVelocity = handle.getLinearVelocity(new Vector3d());
                 BlockPos hitBlockPos = hitPositionsToCheck[0];
@@ -85,6 +86,25 @@ public class TriggerVelocityMixin {
                 double kineticEnergy = 0.5 * impactVelocity * impactVelocity * mass;
                 double hitBlockMass = ((BlockStateExtension) hitBlockState).sable$getProperty(PhysicsBlockPropertyTypes.MASS.get());
                 double speedCost = hitBlockMass * (1.0-bounciness) * CreateBreaking.CONFIG.SpeedCost.get();
+                BlockBreakingProgress blockBreakingProgress = BlockBreakingProgress.get(level);
+                int progress = blockBreakingProgress.getProgress(hitBlockPos);
+
+                if (kineticEnergy<speedCost){
+                    int breakingState = (int) ((kineticEnergy/speedCost) * 10);
+                    progress += Math.clamp(breakingState,0,9);
+                    blockBreakingProgress.setProgress(hitBlockPos,progress);
+                    level.destroyBlockProgress(hitBlockPos.hashCode(),hitBlockPos,progress);
+                    if (progress >= 10){
+                        blockBreakingProgress.resetProgress(hitBlockPos);
+
+                        level.destroyBlock(hitBlockPos, false);
+                        handle.applyLinearAndAngularImpulse(new Vector3d(currentVelocity.normalize()).mul(-(currentVelocity.length() *mass*2)), JOMLConversion.ZERO,true);
+                        return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, true);
+
+                    }
+                    handle.applyLinearAndAngularImpulse(new Vector3d(currentVelocity.normalize()).mul(-(currentVelocity.length() *mass)), JOMLConversion.ZERO,true);
+                    return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, true);
+                }
                 double newEnergy = Math.max(0.0, kineticEnergy - speedCost);
                 double newSpeed = Math.sqrt(2.0 * newEnergy / mass);
                 double massNewton = mass * (impactVelocity - newSpeed);
@@ -98,11 +118,11 @@ public class TriggerVelocityMixin {
                 double penetrationDepth = newEnergy / penetrationDepthCost;
                 if (penetrationDepth >= 1.0) {
                     level.destroyBlock(hitBlockPos, false);
+                    level.destroyBlockProgress(pos.hashCode(),pos,9);
                     handle.applyLinearAndAngularImpulse(deltaVelocity, JOMLConversion.ZERO,true);
                 }
             }
+            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, true);
         }
-
-        return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
     }
 }
