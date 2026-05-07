@@ -1,0 +1,8 @@
+{
+  "selector": "minecraft:minecraft:end_gateway",
+
+  "properties": {
+    "sable:fragile": false
+  }
+
+}

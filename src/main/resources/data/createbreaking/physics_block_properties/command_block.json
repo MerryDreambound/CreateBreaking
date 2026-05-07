@@ -1,0 +1,8 @@
+{
+  "selector": "minecraft:command_block",
+
+  "properties": {
+    "sable:fragile": false
+  }
+
+}

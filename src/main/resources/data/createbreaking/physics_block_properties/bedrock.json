@@ -1,0 +1,8 @@
+{
+  "selector": "minecraft:bedrock",
+
+  "properties": {
+    "sable:fragile": false
+  }
+
+}

@@ -1,0 +1,8 @@
+{
+  "selector": "minecraft:barrier",
+
+  "properties": {
+    "sable:fragile": false
+  }
+
+}

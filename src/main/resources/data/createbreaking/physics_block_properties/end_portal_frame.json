@@ -1,0 +1,8 @@
+{
+  "selector": "minecraft:end_portal_frame",
+
+  "properties": {
+    "sable:fragile": false
+  }
+
+}

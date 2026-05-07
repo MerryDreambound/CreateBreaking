@@ -234,11 +234,14 @@ public class TriggerVelocityMixin {
         BlockBreakingProgress blockBreakingProgress = BlockBreakingProgress.get(level);
         double minFallSpeed = (Math.sqrt(gravity * 2) * CreateBreaking.CONFIG.MinHeight.get());
         boolean oneBlockFall = currentVelocityB.y() >= -minFallSpeed && currentVelocityB.y() < 0;
+        boolean canPenetrate = newEnergy < (penetrationDepthCost*contraptionRatio);
+
+
         Vector3d deltaVelocityB = new Vector3d(new Vector3d(currentVelocityB).normalize()).mul(-massBNewton);
         Vector3d deltaVelocityA = new Vector3d(new Vector3d(currentVelocityA).normalize()).mul(-massANewton);
 
 
-        if (newEnergy < penetrationDepthCost || oneBlockFall){
+        if (canPenetrate || oneBlockFall){
             int worldDamage = blockBreakingProgress.getDamage(contraptionA.pos);
             worldDamage += (int) Math.min(((kineticEnergy / penetrationDepthCost * 10) * worldRatio),9);
             int contraptionDamage = blockBreakingProgress.getDamage(contraptionB.pos);
