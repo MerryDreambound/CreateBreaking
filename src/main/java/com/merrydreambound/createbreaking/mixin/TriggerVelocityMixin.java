@@ -105,14 +105,22 @@ public class TriggerVelocityMixin {
         BlockPos contraptionHitPos = contraption.pos;
         BlockState contraptionBlockState = level.getBlockState(contraptionHitPos);
         double contraptionBlockMass = ((BlockStateExtension) contraptionBlockState).sable$getProperty(PhysicsBlockPropertyTypes.MASS.get());
+        if (contraptionBlockMass == 0){
+            contraptionBlockMass = 1;
+        }
+        if (worldBlockMass == 0){
+            worldBlockMass = 1;
+        }
         double conptrationBlockBounciness = ((BlockStateExtension) contraptionBlockState).sable$getProperty(PhysicsBlockPropertyTypes.RESTITUTION.get());
-
 
         if (container == null) return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
         ServerSubLevel contraptionSubLevel = (ServerSubLevel) container.getSubLevel(contraption.id);
         if (contraptionSubLevel == null) return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
         double contraptionMass = contraptionSubLevel.getMassTracker().getMass();
 
+        if (contraptionMass== 0){
+            contraptionMass = 1;
+        }
         RigidBodyHandle handle = system.getPhysicsHandle(contraptionSubLevel);
         if (handle == null) {
             LogUtils.getLogger().info("HANDLER IS NULL");
@@ -127,6 +135,9 @@ public class TriggerVelocityMixin {
 
 
         Vector3d currentVelocity = handle.getLinearVelocity(new Vector3d());
+        if (currentVelocity.length() <= 0.0001){
+            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+        }
         double kineticEnergy = 0.5 * impactVelocity * impactVelocity * contraptionMass;
         double speedCost = effectiveMass * (1.0 - worldBlockBounciness) * CreateBreaking.CONFIG.SpeedCost.get();
         double penetrationDepthCost = worldBlockMass * CreateBreaking.CONFIG.PenetrationCost.get();
