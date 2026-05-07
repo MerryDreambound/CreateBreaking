@@ -59,12 +59,12 @@ public class BlockBreakingProgress extends SavedData {
         this.setDirty();
     }
 
-    public void setProgress(BlockPos position, int progress) {
+    public void setDamage(BlockPos position, int progress) {
         this.blockProgressArray.put(position, progress);
         this.setDirty();
     }
 
-    public int getProgress(BlockPos position) {
+    public int getDamage(BlockPos position) {
         return this.blockProgressArray.getOrDefault(position, 0);
     }
 

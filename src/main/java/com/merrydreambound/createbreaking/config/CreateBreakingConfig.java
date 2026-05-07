@@ -11,8 +11,9 @@ public class CreateBreakingConfig extends Config {
     public CreateBreakingConfig() {
         super(ResourceLocation.fromNamespaceAndPath(CreateBreaking.MODID,"config"));
     }
-    public ValidatedDouble PenetrationCost = new ValidatedDouble(8, 256, 0.125, ValidatedNumber.WidgetType.TEXTBOX); //this field has defined validation, error correction, and will restrict user inputs to doubles between 0 and 10.
-    public ValidatedDouble SpeedCost = new ValidatedDouble(64, 256, 0.125, ValidatedNumber.WidgetType.TEXTBOX); //this field has defined validation, error correction, and will restrict user inputs to doubles between 0 and 10.
+    public ValidatedDouble PenetrationCost = new ValidatedDouble(256, 1024, 1, ValidatedNumber.WidgetType.TEXTBOX); //this field has defined validation, error correction, and will restrict user inputs to doubles between 0 and 10.
+    public ValidatedDouble SpeedCost = new ValidatedDouble(1000, 25000, 1, ValidatedNumber.WidgetType.TEXTBOX); //this field has defined validation, error correction, and will restrict user inputs to doubles between 0 and 10.
+    public ValidatedDouble MinHeight = new ValidatedDouble(1.1, 256, 0.1, ValidatedNumber.WidgetType.TEXTBOX); //this field has defined validation, error correction, and will restrict user inputs to doubles between 0 and 10.
 
 
 //
