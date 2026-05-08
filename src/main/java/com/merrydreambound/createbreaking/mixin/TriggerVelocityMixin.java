@@ -156,26 +156,31 @@ public class TriggerVelocityMixin {
         boolean oneBlockFall = currentVelocity.y() >= -minFallSpeed && currentVelocity.y() < 0;
         boolean canPenetrate = newEnergy < (penetrationDepthCost*contraptionRatio);
 
+        boolean contraptionBroken = false;
+
         if ( canPenetrate|| oneBlockFall){
             int worldDamage = blockBreakingProgress.getDamage(world.pos);
             worldDamage += (int) Math.min(((kineticEnergy / penetrationDepthCost * 10) * worldRatio),9);
             int contraptionDamage = blockBreakingProgress.getDamage(contraption.pos);
             contraptionDamage += (int) ((kineticEnergy / penetrationDepthCost * 10) * contraptionRatio);
             blockBreakingProgress.setDamage(contraption.pos, contraptionDamage);
-            checkToBreak(blockBreakingProgress, level, contraption.pos);
+            contraptionBroken = checkToBreak(blockBreakingProgress, level, contraption.pos);
             return getCollisionResult(level, world.pos, blockBreakingProgress, worldDamage);
         }else{
             if (worldRatio < 1){
                 int contraptionDamage = blockBreakingProgress.getDamage(contraption.pos);
                 contraptionDamage += (int) Math.max((kineticEnergy / penetrationDepthCost * (10*worldRatio)) * contraptionRatio,1);
                 blockBreakingProgress.setDamage(contraption.pos, contraptionDamage);
-                checkToBreak(blockBreakingProgress, level, contraption.pos);
+                contraptionBroken = checkToBreak(blockBreakingProgress, level, contraption.pos);
             }else{
                 level.destroyBlock(world.pos, false);
             }
             Vector3d deltaVelocity = new Vector3d(new Vector3d(currentVelocity).normalize()).mul(-massNewton);
 
-            handle.applyLinearAndAngularImpulse(deltaVelocity, JOMLConversion.ZERO, true);
+            if (!contraptionBroken){
+                handle.applyLinearAndAngularImpulse(deltaVelocity, JOMLConversion.ZERO, true);
+            }
+
             return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
 
         }
@@ -251,29 +256,39 @@ public class TriggerVelocityMixin {
         Vector3d deltaVelocityB = new Vector3d(new Vector3d(currentVelocityB).normalize()).mul(-massBNewton);
         Vector3d deltaVelocityA = new Vector3d(new Vector3d(currentVelocityA).normalize()).mul(-massANewton);
 
-
+        boolean brokenB = false;
+        boolean brokenA = false;
         if (canPenetrate || oneBlockFall){
             int worldDamage = blockBreakingProgress.getDamage(contraptionA.pos);
             worldDamage += (int) Math.min(((kineticEnergy / penetrationDepthCost * 10) * worldRatio),9);
             int contraptionDamage = blockBreakingProgress.getDamage(contraptionB.pos);
             contraptionDamage += (int) ((kineticEnergy / penetrationDepthCost * 10) * contraptionRatio);
             blockBreakingProgress.setDamage(contraptionB.pos, contraptionDamage);
-            checkToBreak(blockBreakingProgress, level, contraptionB.pos);
-            contraptionBHandle.applyLinearAndAngularImpulse(deltaVelocityB, JOMLConversion.ZERO, true);
-            contraptionAHandle.applyLinearAndAngularImpulse(deltaVelocityA, JOMLConversion.ZERO, true);
+            brokenB = checkToBreak(blockBreakingProgress, level, contraptionB.pos);
+            if (!brokenB){
+                contraptionBHandle.applyLinearAndAngularImpulse(deltaVelocityB, JOMLConversion.ZERO, true);
+            }
+            if (!brokenA){
+                contraptionAHandle.applyLinearAndAngularImpulse(deltaVelocityA, JOMLConversion.ZERO, true);
+            }
             return getCollisionResult(level, contraptionA.pos, blockBreakingProgress, worldDamage);
         }else{
+
+
             if (worldRatio < 1){
                 int contraptionDamage = blockBreakingProgress.getDamage(contraptionB.pos);
                 contraptionDamage += (int) Math.max((kineticEnergy / penetrationDepthCost * (10*worldRatio)) * contraptionRatio,1);
                 blockBreakingProgress.setDamage(contraptionB.pos, contraptionDamage);
-                checkToBreak(blockBreakingProgress, level, contraptionB.pos);
+                brokenB = checkToBreak(blockBreakingProgress, level, contraptionB.pos);
             }else{
                 level.destroyBlock(contraptionA.pos, false);
             }
-
-            contraptionBHandle.applyLinearAndAngularImpulse(deltaVelocityB, JOMLConversion.ZERO, true);
-            contraptionAHandle.applyLinearAndAngularImpulse(deltaVelocityA, JOMLConversion.ZERO, true);
+            if (!brokenB){
+                contraptionBHandle.applyLinearAndAngularImpulse(deltaVelocityB, JOMLConversion.ZERO, true);
+            }
+            if (!brokenA){
+                contraptionAHandle.applyLinearAndAngularImpulse(deltaVelocityA, JOMLConversion.ZERO, true);
+            }
 
             return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
 
@@ -295,15 +310,17 @@ public class TriggerVelocityMixin {
     }
 
     @Unique
-    private void checkToBreak(BlockBreakingProgress breakingProgress, Level level, BlockPos pos) {
+    private boolean checkToBreak(BlockBreakingProgress breakingProgress, Level level, BlockPos pos) {
         int blockProgress = breakingProgress.getDamage(pos);
         boolean broken = blockProgress >= 10;
         if (broken) {
             breakingProgress.resetProgress(pos);
             level.destroyBlock(pos, false);
+            return true;
         } else {
             breakingProgress.setDamage(pos, blockProgress);
             level.destroyBlockProgress(pos.hashCode(), pos, blockProgress);
+            return false;
         }
     }
 
