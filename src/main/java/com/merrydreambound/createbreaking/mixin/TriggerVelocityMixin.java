@@ -77,7 +77,11 @@ public class TriggerVelocityMixin {
                 collisionResult = worldContraptionCollision(level, impactVelocity, container, system, bodyB, bodyA);
             } else {
                 // bodyA is contraption, body B is contraption
-                collisionResult = contraptionContraptionCollision(level, impactVelocity, container, system, bodyA, bodyB);
+                if (bodyA.id != bodyB.id){
+                    collisionResult = contraptionContraptionCollision(level, impactVelocity, container, system, bodyA, bodyB);
+                }else{
+                    return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
+                }
             }
 
         }
@@ -154,28 +158,29 @@ public class TriggerVelocityMixin {
         BlockBreakingProgress blockBreakingProgress = BlockBreakingProgress.get(level);
         double minFallSpeed = (Math.sqrt(gravity * 2) * CreateBreaking.CONFIG.MinHeight.get());
         boolean oneBlockFall = currentVelocity.y() >= -minFallSpeed && currentVelocity.y() < 0;
-        boolean canPenetrate = newEnergy < (penetrationDepthCost*contraptionRatio);
+        boolean canPenetrate = newEnergy >= (penetrationDepthCost*contraptionRatio);
+        Vector3d deltaVelocity = new Vector3d(new Vector3d(currentVelocity).normalize()).mul(-massNewton);
 
         boolean contraptionBroken = false;
+        double contraptionDamageDone;
+        if (CreateBreaking.CONFIG.ExtraFragile.get()){
+            contraptionDamageDone = Math.max(((kineticEnergy / penetrationDepthCost * (10 * worldRatio)) * contraptionRatio), 1);
+        }else{
+            contraptionDamageDone = Math.max(((kineticEnergy / penetrationDepthCost * (10)) * contraptionRatio), 1);
+        }
 
-        if ( canPenetrate|| oneBlockFall){
+        if (!canPenetrate){
             int worldDamage = blockBreakingProgress.getDamage(world.pos);
             worldDamage += (int) Math.min(((kineticEnergy / penetrationDepthCost * 10) * worldRatio),9);
-            int contraptionDamage = blockBreakingProgress.getDamage(contraption.pos);
-            contraptionDamage += (int) ((kineticEnergy / penetrationDepthCost * 10) * contraptionRatio);
-            blockBreakingProgress.setDamage(contraption.pos, contraptionDamage);
-            contraptionBroken = checkToBreak(blockBreakingProgress, level, contraption.pos);
-            return getCollisionResult(level, world.pos, blockBreakingProgress, worldDamage);
+            checkToBreak(blockBreakingProgress,level,world.pos,worldDamage);
+            checkToBreak(blockBreakingProgress, level, contraption.pos,(int)contraptionDamageDone);
+            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
         }else{
             if (worldRatio < 1){
-                int contraptionDamage = blockBreakingProgress.getDamage(contraption.pos);
-                contraptionDamage += (int) Math.max((kineticEnergy / penetrationDepthCost * (10*worldRatio)) * contraptionRatio,1);
-                blockBreakingProgress.setDamage(contraption.pos, contraptionDamage);
-                contraptionBroken = checkToBreak(blockBreakingProgress, level, contraption.pos);
+                contraptionBroken = checkToBreak(blockBreakingProgress, level, contraption.pos,(int)contraptionDamageDone);
             }else{
                 level.destroyBlock(world.pos, false);
             }
-            Vector3d deltaVelocity = new Vector3d(new Vector3d(currentVelocity).normalize()).mul(-massNewton);
 
             if (!contraptionBroken){
                 handle.applyLinearAndAngularImpulse(deltaVelocity, JOMLConversion.ZERO, true);
@@ -250,7 +255,7 @@ public class TriggerVelocityMixin {
         BlockBreakingProgress blockBreakingProgress = BlockBreakingProgress.get(level);
         double minFallSpeed = (Math.sqrt(gravity * 2) * CreateBreaking.CONFIG.MinHeight.get());
         boolean oneBlockFall = currentVelocityB.y() >= -minFallSpeed && currentVelocityB.y() < 0;
-        boolean canPenetrate = newEnergy < (penetrationDepthCost*contraptionRatio);
+        boolean canPenetrate = newEnergy >= (penetrationDepthCost*contraptionRatio);
 
 
         Vector3d deltaVelocityB = new Vector3d(new Vector3d(currentVelocityB).normalize()).mul(-massBNewton);
@@ -258,28 +263,29 @@ public class TriggerVelocityMixin {
 
         boolean brokenB = false;
         boolean brokenA = false;
-        if (canPenetrate || oneBlockFall){
+        double contraptionDamageDone;
+        if (CreateBreaking.CONFIG.ExtraFragile.get()){
+            contraptionDamageDone = Math.max(((kineticEnergy / penetrationDepthCost * (10 * worldRatio)) * contraptionRatio), 1);
+        }else{
+            contraptionDamageDone = Math.max(((kineticEnergy / penetrationDepthCost * (10)) * contraptionRatio), 1);
+        }
+        if (!canPenetrate){
             int worldDamage = blockBreakingProgress.getDamage(contraptionA.pos);
             worldDamage += (int) Math.min(((kineticEnergy / penetrationDepthCost * 10) * worldRatio),9);
-            int contraptionDamage = blockBreakingProgress.getDamage(contraptionB.pos);
-            contraptionDamage += (int) ((kineticEnergy / penetrationDepthCost * 10) * contraptionRatio);
-            blockBreakingProgress.setDamage(contraptionB.pos, contraptionDamage);
-            brokenB = checkToBreak(blockBreakingProgress, level, contraptionB.pos);
+            brokenA = checkToBreak(blockBreakingProgress,level,bodyA.pos,worldDamage);
+            brokenB = checkToBreak(blockBreakingProgress, level, bodyB.pos,(int)contraptionDamageDone);
             if (!brokenB){
                 contraptionBHandle.applyLinearAndAngularImpulse(deltaVelocityB, JOMLConversion.ZERO, true);
             }
             if (!brokenA){
                 contraptionAHandle.applyLinearAndAngularImpulse(deltaVelocityA, JOMLConversion.ZERO, true);
             }
-            return getCollisionResult(level, contraptionA.pos, blockBreakingProgress, worldDamage);
+            return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
         }else{
 
 
             if (worldRatio < 1){
-                int contraptionDamage = blockBreakingProgress.getDamage(contraptionB.pos);
-                contraptionDamage += (int) Math.max((kineticEnergy / penetrationDepthCost * (10*worldRatio)) * contraptionRatio,1);
-                blockBreakingProgress.setDamage(contraptionB.pos, contraptionDamage);
-                brokenB = checkToBreak(blockBreakingProgress, level, contraptionB.pos);
+                brokenB = checkToBreak(blockBreakingProgress, level, contraptionB.pos,(int)contraptionDamageDone);
             }else{
                 level.destroyBlock(contraptionA.pos, false);
             }
@@ -296,11 +302,6 @@ public class TriggerVelocityMixin {
     }
 
     @Unique
-    private BlockSubLevelCollisionCallback.CollisionResult getCollisionResult(ServerLevel level, BlockPos hitBlockPos, BlockBreakingProgress blockBreakingProgress, int progress) {
-        blockBreakingProgress.setDamage(hitBlockPos, progress);
-        checkToBreak(blockBreakingProgress, level, hitBlockPos);
-        return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
-    }
     private static UUID getServerSubLevelUUID(final Level level, final Vector3dc pos) {
         final SubLevel subLevel = Sable.HELPER.getContaining(level, pos);
         if (subLevel instanceof ServerSubLevel serverSubLevel) {
@@ -310,8 +311,10 @@ public class TriggerVelocityMixin {
     }
 
     @Unique
-    private boolean checkToBreak(BlockBreakingProgress breakingProgress, Level level, BlockPos pos) {
+    private boolean checkToBreak(BlockBreakingProgress breakingProgress, Level level, BlockPos pos, int newDamage) {
+
         int blockProgress = breakingProgress.getDamage(pos);
+        blockProgress += newDamage;
         boolean broken = blockProgress >= 10;
         if (broken) {
             breakingProgress.resetProgress(pos);
