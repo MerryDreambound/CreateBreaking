@@ -1,4 +1,4 @@
-package com.merrydreambound.createbreaking.mixin;
+package com.merrydreambound.sablefragile.mixin;
 
 import com.mojang.serialization.Codec;
 import dev.ryanhcode.sable.physics.config.block_properties.PhysicsBlockPropertyTypes;

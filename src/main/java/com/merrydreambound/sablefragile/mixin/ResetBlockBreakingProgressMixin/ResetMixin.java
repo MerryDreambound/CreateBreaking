@@ -1,6 +1,6 @@
-package com.merrydreambound.createbreaking.mixin.ResetBlockBreakingProgressMixin;
+package com.merrydreambound.sablefragile.mixin.ResetBlockBreakingProgressMixin;
 
-import com.merrydreambound.createbreaking.BlockBreakingProgress;
+import com.merrydreambound.sablefragile.BlockBreakingProgress;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;

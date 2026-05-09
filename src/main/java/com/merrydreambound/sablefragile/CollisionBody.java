@@ -1,4 +1,4 @@
-package com.merrydreambound.createbreaking;
+package com.merrydreambound.sablefragile;
 
 import net.minecraft.core.BlockPos;
 import org.joml.Vector3d;

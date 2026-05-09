@@ -1,12 +1,12 @@
-package com.merrydreambound.createbreaking.mixin;
+package com.merrydreambound.sablefragile.mixin;
 
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import com.merrydreambound.createbreaking.BlockBreakingProgress;
-import com.merrydreambound.createbreaking.CollisionBody;
-import com.merrydreambound.createbreaking.CreateBreaking;
+import com.merrydreambound.sablefragile.BlockBreakingProgress;
+import com.merrydreambound.sablefragile.CollisionBody;
+import com.merrydreambound.sablefragile.SableFragile;
 import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.api.physics.callback.BlockSubLevelCollisionCallback;
@@ -143,8 +143,8 @@ public class TriggerVelocityMixin {
             return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
         }
         double kineticEnergy = 0.5 * impactVelocity * impactVelocity * contraptionMass;
-        double speedCost = effectiveMass * (1.0 - worldBlockBounciness) * CreateBreaking.CONFIG.SpeedCost.get();
-        double penetrationDepthCost = worldBlockMass * CreateBreaking.CONFIG.PenetrationCost.get();
+        double speedCost = effectiveMass * (1.0 - worldBlockBounciness) * SableFragile.CONFIG.SpeedCost.get();
+        double penetrationDepthCost = worldBlockMass * SableFragile.CONFIG.PenetrationCost.get();
         //Calculate penetration
         if (penetrationDepthCost == 0) {
             penetrationDepthCost = 0.125;
@@ -156,14 +156,14 @@ public class TriggerVelocityMixin {
         double newSpeed = Math.sqrt(2.0 * newEnergy / contraptionMass);
         double massNewton = contraptionMass * (impactVelocity - newSpeed);
         BlockBreakingProgress blockBreakingProgress = BlockBreakingProgress.get(level);
-        double minFallSpeed = (Math.sqrt(gravity * 2) * CreateBreaking.CONFIG.MinHeight.get());
+        double minFallSpeed = (Math.sqrt(gravity * 2) * SableFragile.CONFIG.MinHeight.get());
         boolean oneBlockFall = currentVelocity.y() >= -minFallSpeed && currentVelocity.y() < 0;
         boolean canPenetrate = newEnergy >= (penetrationDepthCost*contraptionRatio);
         Vector3d deltaVelocity = new Vector3d(new Vector3d(currentVelocity).normalize()).mul(-massNewton);
 
         boolean contraptionBroken = false;
         double contraptionDamageDone;
-        if (CreateBreaking.CONFIG.ExtraFragile.get()){
+        if (SableFragile.CONFIG.ExtraFragileWorld.get()){
             contraptionDamageDone = Math.max(((kineticEnergy / penetrationDepthCost * (10 * worldRatio)) * contraptionRatio), 1);
         }else{
             contraptionDamageDone = Math.max(((kineticEnergy / penetrationDepthCost * (10)) * contraptionRatio), 1);
@@ -238,8 +238,8 @@ public class TriggerVelocityMixin {
         Vector3d currentVelocityA = contraptionAHandle.getLinearVelocity(new Vector3d());
 
         double kineticEnergy = 0.5 * impactVelocity * impactVelocity * contraptionBMass;
-        double speedCost = effectiveMass * (1.0 - contraptionABlockBounciness) * CreateBreaking.CONFIG.SpeedCost.get();
-        double penetrationDepthCost = contraptionABlockMass * CreateBreaking.CONFIG.PenetrationCost.get();
+        double speedCost = effectiveMass * (1.0 - contraptionABlockBounciness) * SableFragile.CONFIG.SpeedCost.get();
+        double penetrationDepthCost = contraptionABlockMass * SableFragile.CONFIG.PenetrationCost.get();
         //Calculate penetration
         if (penetrationDepthCost == 0) {
             penetrationDepthCost = 0.125;
@@ -253,7 +253,7 @@ public class TriggerVelocityMixin {
         double massANewton = contraptionAMass * (impactVelocity - newSpeed);
 
         BlockBreakingProgress blockBreakingProgress = BlockBreakingProgress.get(level);
-        double minFallSpeed = (Math.sqrt(gravity * 2) * CreateBreaking.CONFIG.MinHeight.get());
+        double minFallSpeed = (Math.sqrt(gravity * 2) * SableFragile.CONFIG.MinHeight.get());
         boolean oneBlockFall = currentVelocityB.y() >= -minFallSpeed && currentVelocityB.y() < 0;
         boolean canPenetrate = newEnergy >= (penetrationDepthCost*contraptionRatio);
 
@@ -264,7 +264,7 @@ public class TriggerVelocityMixin {
         boolean brokenB = false;
         boolean brokenA = false;
         double contraptionDamageDone;
-        if (CreateBreaking.CONFIG.ExtraFragile.get()){
+        if (SableFragile.CONFIG.ExtraFragileWorld.get()){
             contraptionDamageDone = Math.max(((kineticEnergy / penetrationDepthCost * (10 * worldRatio)) * contraptionRatio), 1);
         }else{
             contraptionDamageDone = Math.max(((kineticEnergy / penetrationDepthCost * (10)) * contraptionRatio), 1);
