@@ -9,6 +9,7 @@ import com.merrydreambound.sablefragile.CollisionBody;
 import com.merrydreambound.sablefragile.SableFragile;
 import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.Sable;
+import dev.ryanhcode.sable.api.physics.PhysicsPipelineProvider;
 import dev.ryanhcode.sable.api.physics.callback.BlockSubLevelCollisionCallback;
 import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
@@ -30,18 +31,12 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import dev.ryanhcode.sable.physics.callback.FragileBlockCallback;
 
+import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.UUID;
 
 @Mixin(FragileBlockCallback.class)
 public class TriggerVelocityMixin {
-
-    @Unique
-    private CollisionBody bodyA;
-    @Unique
-    private CollisionBody bodyB;
-
-
 
     @WrapWithCondition(method = "onHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;destroyBlock(Lnet/minecraft/core/BlockPos;Z)Z"))
     private boolean disableBreaking(ServerLevel instance, BlockPos pos, boolean b) {
@@ -49,20 +44,23 @@ public class TriggerVelocityMixin {
     }
 
     @WrapOperation(method = "sable$onCollision", at = @At(value = "INVOKE", target = "Ldev/ryanhcode/sable/physics/callback/FragileBlockCallback;onHit(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lorg/joml/Vector3d;)Ldev/ryanhcode/sable/api/physics/callback/BlockSubLevelCollisionCallback$CollisionResult;"))
-    private BlockSubLevelCollisionCallback.CollisionResult wrapOnCollision(FragileBlockCallback instance, ServerLevel level, BlockPos pos, BlockState state, Vector3d hitPos, Operation<BlockSubLevelCollisionCallback.CollisionResult> original, @Local(argsOnly = true) double impactVelocity) {
+    private BlockSubLevelCollisionCallback.CollisionResult wrapOnCollision(FragileBlockCallback instance, ServerLevel level, BlockPos pos, BlockState state, Vector3d hitPos, Operation<BlockSubLevelCollisionCallback.CollisionResult> original, @Local(argsOnly = true) double impactVelocity, @Local(argsOnly = true,ordinal = 1) BlockPos otherHitBlockPos) {
 
+        LogUtils.getLogger().info(String.valueOf(otherHitBlockPos) + String.valueOf(pos));
         final SubLevelPhysicsSystem system = SubLevelPhysicsSystem.getCurrentlySteppingSystem();
         final ServerSubLevelContainer container = ServerSubLevelContainer.getContainer(level);
 //        double mass = PhysicsBlockPropertyHelper.getMass(level, pos, state);
-        if (bodyA == null) {
-            bodyA = new CollisionBody(getServerSubLevelUUID(level, hitPos), pos, hitPos, impactVelocity);
+        if (otherHitBlockPos == null) {
             return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
         }
+        LogUtils.getLogger().info("NOT NULL");
 
-        bodyB = new CollisionBody(getServerSubLevelUUID(level, hitPos), pos, hitPos, impactVelocity);
+        CollisionBody bodyA = new CollisionBody(getServerSubLevelUUID(level, new Vector3d(pos.getX(), pos.getY(), pos.getZ())), pos, impactVelocity);
+        CollisionBody bodyB = new CollisionBody(getServerSubLevelUUID(level, new Vector3d(otherHitBlockPos.getX(), otherHitBlockPos.getY(), otherHitBlockPos.getZ())), otherHitBlockPos, impactVelocity);
 
 
-
+        LogUtils.getLogger().info(bodyA.toString());
+        LogUtils.getLogger().info(bodyB.toString());
         BlockSubLevelCollisionCallback.CollisionResult collisionResult;
 
 
@@ -85,8 +83,6 @@ public class TriggerVelocityMixin {
             }
 
         }
-        bodyA = null;
-        bodyB = null;
         return collisionResult;
     }
 
@@ -137,8 +133,14 @@ public class TriggerVelocityMixin {
         double worldRatio = effectiveMass / worldBlockMass;
 
 
+    // Crash happens here
+//        Vector3d currentVelocity = impactVelocity;
+        Vector3d currentVelocity = null;
+        handle.getLinearVelocity(currentVelocity);
+        // Crash happens here ^^
 
-        Vector3d currentVelocity = handle.getLinearVelocity(new Vector3d());
+
+
         if (currentVelocity.length() <= 0.0001){
             return new BlockSubLevelCollisionCallback.CollisionResult(JOMLConversion.ZERO, false);
         }
@@ -272,8 +274,8 @@ public class TriggerVelocityMixin {
         if (!canPenetrate){
             int worldDamage = blockBreakingProgress.getDamage(contraptionA.pos);
             worldDamage += (int) Math.min(((kineticEnergy / penetrationDepthCost * 10) * worldRatio),9);
-            brokenA = checkToBreak(blockBreakingProgress,level,bodyA.pos,worldDamage);
-            brokenB = checkToBreak(blockBreakingProgress, level, bodyB.pos,(int)contraptionDamageDone);
+            brokenA = checkToBreak(blockBreakingProgress,level,contraptionA.pos,worldDamage);
+            brokenB = checkToBreak(blockBreakingProgress, level, contraptionB.pos,(int)contraptionDamageDone);
             if (!brokenB){
                 contraptionBHandle.applyLinearAndAngularImpulse(deltaVelocityB, JOMLConversion.ZERO, true);
             }
