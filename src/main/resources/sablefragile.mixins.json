@@ -4,7 +4,10 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "MakeEverythingFragileMixin",
+//    "nbtIOMixin",
+//    "sableCursedMixin",
     "TriggerVelocityMixin",
+//    "UncompressedSavingMixin",
     "ResetBlockBreakingProgressMixin.ResetMixin",
     "ResetBlockBreakingProgressMixin.ResetOnPlaceMixin"
   ],
